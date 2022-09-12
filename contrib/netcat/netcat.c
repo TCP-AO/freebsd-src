@@ -84,6 +84,7 @@
 #define BUFSIZE 16384
 
 /* Command Line Options */
+int	FreeBSD_Aflag;				/* TCP-AO (RFC 5925) */
 int	dflag;					/* detached, no stdin */
 int	Fflag;					/* fdpass sock to stdout */
 unsigned int iflag;				/* Interval Flag */
@@ -184,6 +185,9 @@ main(int argc, char *argv[])
 			break;
 		case '6':
 			family = AF_INET6;
+			break;
+		case 'A':
+			FreeBSD_Aflag = 1;
 			break;
 		case 'U':
 			family = AF_UNIX;
@@ -1325,6 +1329,11 @@ set_common_sockopts(int s, int af)
 		if (setsockopt(s, SOL_SOCKET, SO_SNDBUF,
 		    &Oflag, sizeof(Oflag)) == -1)
 			err(1, "set TCP send buffer size");
+	}
+	if (FreeBSD_Aflag) {
+		if (setsockopt(s, IPPROTO_TCP, TCP_AUTHOPT,
+			&x, sizeof(x)) == -1)
+			err(1, NULL);
 	}
 	if (FreeBSD_Oflag) {
 		if (setsockopt(s, IPPROTO_TCP, TCP_NOOPT,
