@@ -1,0 +1,17 @@
+#
+# TCPAO -- GENERIC FreeBSD kernel with support for TCP-AO (RFC 5925)
+#
+# This file is not intended to be committed to upstream FreeBSD.
+# It exists only for convenience during development.
+#
+# Note that on CURRENT this configuration does not disable any invasive
+# debugging options.  This configuration alone should not be used for
+# performance testing.
+#
+
+include	GENERIC
+ident	TCPAO
+
+# GENERIC includes 'options IPSEC_SUPPORT' and 'device crypto'.
+# This alone suffices.
+options	TCP_AUTH_OPT
