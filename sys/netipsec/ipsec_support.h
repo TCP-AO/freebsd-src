@@ -38,6 +38,7 @@ struct sockopt;
 struct sockaddr;
 struct ipsec_support;
 struct tcpmd5_support;
+struct tcpao_support;
 
 size_t ipsec_hdrsiz_inpcb(struct inpcb *);
 int ipsec_init_pcbpolicy(struct inpcb *);
@@ -66,10 +67,17 @@ struct tcpmd5_methods {
 	int	(*pcbctl)(struct inpcb *, struct sockopt *);
 };
 
+struct tcpao_methods {
+	int	(*input)(struct mbuf *, struct tcphdr *, u_char *);
+	int	(*output)(struct mbuf *, struct tcphdr *, u_char *);
+	int	(*pcbctl)(struct inpcb *, struct sockopt *);
+};
+
 #define	IPSEC_MODULE_ENABLED	0x0001
 #define	IPSEC_ENABLED(proto)	\
     ((proto ## _ipsec_support)->enabled & IPSEC_MODULE_ENABLED)
-#define	TCPMD5_ENABLED()	IPSEC_ENABLED(tcp)
+#define	TCPMD5_ENABLED()	IPSEC_ENABLED(tcpmd5)
+#define	TCPAO_ENABLED()		IPSEC_ENABLED(tcpao)
 
 #ifdef TCP_SIGNATURE
 /* TCP-MD5 build in the kernel */
@@ -77,21 +85,21 @@ struct tcpmd5_support {
 	const u_int enabled;
 	const struct tcpmd5_methods * const methods;
 };
-extern const struct tcpmd5_support * const tcp_ipsec_support;
+extern const struct tcpmd5_support * const tcpmd5_ipsec_support;
 
 #define	TCPMD5_INPUT(m, ...)		\
-    (*tcp_ipsec_support->methods->input)(m, __VA_ARGS__)
+    (*tcpmd5_ipsec_support->methods->input)(m, __VA_ARGS__)
 #define	TCPMD5_OUTPUT(m, ...)		\
-    (*tcp_ipsec_support->methods->output)(m, __VA_ARGS__)
+    (*tcpmd5_ipsec_support->methods->output)(m, __VA_ARGS__)
 #define	TCPMD5_PCBCTL(inp, sopt)	\
-    (*tcp_ipsec_support->methods->pcbctl)(inp, sopt)
+    (*tcpmd5_ipsec_support->methods->pcbctl)(inp, sopt)
 #elif defined(IPSEC_SUPPORT)
 /* TCP-MD5 build as module */
 struct tcpmd5_support {
 	volatile u_int enabled;
 	const struct tcpmd5_methods * volatile methods;
 };
-extern struct tcpmd5_support * const tcp_ipsec_support;
+extern struct tcpmd5_support * const tcpmd5_ipsec_support;
 
 void tcpmd5_support_enable(const struct tcpmd5_methods * const);
 void tcpmd5_support_disable(void);
@@ -103,11 +111,50 @@ int tcpmd5_kmod_input(struct tcpmd5_support * const, struct mbuf *,
 int tcpmd5_kmod_output(struct tcpmd5_support * const, struct mbuf *,
     struct tcphdr *, u_char *);
 #define	TCPMD5_INPUT(m, ...)		\
-    tcpmd5_kmod_input(tcp_ipsec_support, m, __VA_ARGS__)
+    tcpmd5_kmod_input(tcpmd5_ipsec_support, m, __VA_ARGS__)
 #define	TCPMD5_OUTPUT(m, ...)		\
-    tcpmd5_kmod_output(tcp_ipsec_support, m, __VA_ARGS__)
+    tcpmd5_kmod_output(tcpmd5_ipsec_support, m, __VA_ARGS__)
 #define	TCPMD5_PCBCTL(inp, sopt)	\
-    tcpmd5_kmod_pcbctl(tcp_ipsec_support, inp, sopt)
+    tcpmd5_kmod_pcbctl(tcpmd5_ipsec_support, inp, sopt)
+#endif
+
+#ifdef TCP_AUTH_OPT
+/* TCP-AO build in the kernel */
+struct tcpao_support {
+	const u_int enabled;
+	const struct tcpao_methods * const methods;
+};
+extern const struct tcpao_support * const tcpao_ipsec_support;
+
+#define	TCPAO_INPUT(m, ...)		\
+    (*tcpao_ipsec_support->methods->input)(m, __VA_ARGS__)
+#define	TCPAO_OUTPUT(m, ...)		\
+    (*tcpao_ipsec_support->methods->output)(m, __VA_ARGS__)
+#define	TCPAO_PCBCTL(inp, sopt)	\
+    (*tcpao_ipsec_support->methods->pcbctl)(inp, sopt)
+#elif defined(IPSEC_SUPPORT)
+/* TCP-AO build as a module */
+struct tcpao_support {
+	volatile u_int enabled;
+	const struct tcpao_methods * volatile methods;
+};
+extern struct tcpao_support * const tcpao_ipsec_support;
+
+void tcpao_support_enable(const struct tcpao_methods * const);
+void tcpao_support_disable(void);
+
+int tcpao_kmod_pcbctl(struct tcpao_support * const, struct inpcb *,
+    struct sockopt *);
+int tcpao_kmod_input(struct tcpao_support * const, struct mbuf *,
+    struct tcphdr *, u_char *);
+int tcpao_kmod_output(struct tcpao_support * const, struct mbuf *,
+    struct tcphdr *, u_char *);
+#define	TCPAO_INPUT(m, ...)		\
+    tcpao_kmod_input(tcpao_ipsec_support, m, __VA_ARGS__)
+#define	TCPAO_OUTPUT(m, ...)		\
+    tcpao_kmod_output(tcpao_ipsec_support, m, __VA_ARGS__)
+#define	TCPAO_PCBCTL(inp, sopt)	\
+    tcpao_kmod_pcbctl(tcpao_ipsec_support, inp, sopt)
 #endif
 
 #endif /* IPSEC || IPSEC_SUPPORT */

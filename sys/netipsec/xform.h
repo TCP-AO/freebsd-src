@@ -84,6 +84,7 @@ struct xform_data {
 #define	XF_ESP		3	/* ESP */
 #define	XF_TCPSIGNATURE	5	/* TCP MD5 Signature option, RFC 2358 */
 #define	XF_IPCOMP	6	/* IPCOMP */
+#define	XF_TCPAO	7	/* TCP Authentication Option, RFC 5925 */
 
 struct xformsw {
 	u_short			xf_type;	/* xform ID */

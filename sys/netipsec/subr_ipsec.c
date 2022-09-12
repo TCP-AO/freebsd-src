@@ -235,12 +235,14 @@ xform_init(struct secasvar *sav, u_short xftype)
 
 #ifdef IPSEC_SUPPORT
 /*
- * IPSEC_SUPPORT - loading of ipsec.ko and tcpmd5.ko is supported.
- * IPSEC + IPSEC_SUPPORT - loading tcpmd5.ko is supported.
+ * IPSEC_SUPPORT - loading of ipsec.ko, tcpao.ko and tcpmd5.ko is supported.
+ * IPSEC + IPSEC_SUPPORT - loading tcpao.ko and tcpmd5.ko is supported.
  * IPSEC + TCP_SIGNATURE - all is build in the kernel, do not build
  *   IPSEC_SUPPORT.
+ * IPSEC + TCP_AUTH_OPT - all is build in the kernel, do not build
+ *   IPSEC_SUPPORT.
  */
-#if !defined(IPSEC) || !defined(TCP_SIGNATURE)
+#if !defined(IPSEC) || !defined(TCP_SIGNATURE) || !defined(TCP_AUTH_OPT)
 #define	METHOD_DECL(...)	__VA_ARGS__
 #define	METHOD_ARGS(...)	__VA_ARGS__
 #define	IPSEC_KMOD_METHOD(type, name, sc, method, decl, args)		\
@@ -276,7 +278,7 @@ static moduledata_t ipsec_support_mod = {
 DECLARE_MODULE(ipsec_support, ipsec_support_mod, SI_SUB_PROTO_DOMAIN,
     SI_ORDER_ANY);
 MODULE_VERSION(ipsec_support, 1);
-#endif /* !IPSEC || !TCP_SIGNATURE */
+#endif /* !IPSEC || !TCP_SIGNATURE || !TCP_AUTH_OPT */
 
 #ifndef TCP_SIGNATURE
 /* Declare TCP-MD5 support as kernel module. */
@@ -284,7 +286,7 @@ static struct tcpmd5_support tcpmd5_ipsec = {
 	.enabled = 0,
 	.methods = NULL
 };
-struct tcpmd5_support * const tcp_ipsec_support = &tcpmd5_ipsec;
+struct tcpmd5_support * const tcpmd5_ipsec_support = &tcpmd5_ipsec;
 
 IPSEC_KMOD_METHOD(int, tcpmd5_kmod_input, sc,
     input, METHOD_DECL(struct tcpmd5_support * const sc, struct mbuf *m,
@@ -305,21 +307,66 @@ void
 tcpmd5_support_enable(const struct tcpmd5_methods * const methods)
 {
 
-	KASSERT(tcp_ipsec_support->enabled == 0, ("TCP-MD5 already enabled"));
-	tcp_ipsec_support->methods = methods;
-	tcp_ipsec_support->enabled |= IPSEC_MODULE_ENABLED;
+	KASSERT(tcpmd5_ipsec_support->enabled == 0,
+	    ("TCP-MD5 already enabled"));
+	tcpmd5_ipsec_support->methods = methods;
+	tcpmd5_ipsec_support->enabled |= IPSEC_MODULE_ENABLED;
 }
 
 void
 tcpmd5_support_disable(void)
 {
 
-	if (tcp_ipsec_support->enabled & IPSEC_MODULE_ENABLED) {
-		ipsec_kmod_drain(&tcp_ipsec_support->enabled);
-		tcp_ipsec_support->methods = NULL;
+	if (tcpmd5_ipsec_support->enabled & IPSEC_MODULE_ENABLED) {
+		ipsec_kmod_drain(&tcpmd5_ipsec_support->enabled);
+		tcpmd5_ipsec_support->methods = NULL;
 	}
 }
 #endif /* !TCP_SIGNATURE */
+
+#ifndef TCP_AUTH_OPT
+/* Declare TCP-AO support as kernel module. */
+static struct tcpao_support tcpao_ipsec = {
+	.enabled = 0,
+	.methods = NULL
+};
+struct tcpao_support * const tcpao_ipsec_support = &tcpao_ipsec;
+
+IPSEC_KMOD_METHOD(int, tcpao_kmod_input, sc,
+    input, METHOD_DECL(struct tcpao_support * const sc, struct mbuf *m,
+	struct tcphdr *th, u_char *buf), METHOD_ARGS(m, th, buf)
+)
+
+IPSEC_KMOD_METHOD(int, tcpao_kmod_output, sc,
+    output, METHOD_DECL(struct tcpao_support * const sc, struct mbuf *m,
+	struct tcphdr *th, u_char *buf), METHOD_ARGS(m, th, buf)
+)
+
+IPSEC_KMOD_METHOD(int, tcpao_kmod_pcbctl, sc,
+    pcbctl, METHOD_DECL(struct tcpao_support * const sc, struct inpcb *inp,
+	struct sockopt *sopt), METHOD_ARGS(inp, sopt)
+)
+
+void
+tcpao_support_enable(const struct tcpao_methods * const methods)
+{
+
+	KASSERT(tcpao_ipsec_support->enabled == 0,
+	    ("TCP-AO already enabled"));
+	tcpao_ipsec_support->methods = methods;
+	tcpao_ipsec_support->enabled |= IPSEC_MODULE_ENABLED;
+}
+
+void
+tcpao_support_disable(void)
+{
+
+	if (tcpao_ipsec_support->enabled & IPSEC_MODULE_ENABLED) {
+		ipsec_kmod_drain(&tcpao_ipsec_support->enabled);
+		tcpao_ipsec_support->methods = NULL;
+	}
+}
+#endif /* !TCP_AUTH_OPT */
 
 #ifndef IPSEC
 /*

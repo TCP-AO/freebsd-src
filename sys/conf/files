@@ -4459,6 +4459,9 @@ netipsec/xform_ipcomp.c		optional ipsec inet | ipsec inet6
 netipsec/xform_tcp.c		optional ipsec inet tcp_signature | \
 	 ipsec inet6 tcp_signature | ipsec_support inet tcp_signature | \
 	 ipsec_support inet6 tcp_signature
+netipsec/xform_tcp_ao.c		optional ipsec inet tcp_auth_opt | \
+	 ipsec inet6 tcp_auth_opt | ipsec_support inet tcp_auth_opt | \
+	 ipsec_support inet6 tcp_auth_opt
 netpfil/ipfw/dn_aqm_codel.c	optional inet dummynet
 netpfil/ipfw/dn_aqm_pie.c	optional inet dummynet
 netpfil/ipfw/dn_heap.c		optional inet dummynet

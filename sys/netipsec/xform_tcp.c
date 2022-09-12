@@ -390,7 +390,7 @@ static const struct tcpmd5_support tcpmd5_ipsec = {
 	.enabled = IPSEC_MODULE_ENABLED,
 	.methods = &tcpmd5_methods
 };
-const struct tcpmd5_support * const tcp_ipsec_support = &tcpmd5_ipsec;
+const struct tcpmd5_support * const tcpmd5_ipsec_support = &tcpmd5_ipsec;
 #endif /* !KLD_MODULE */
 
 static int
