@@ -343,6 +343,22 @@ However, during connection negotiation, a non-signed segment will be accepted if
 an SADB entry does not exist between hosts.
 When a non-signed segment is accepted, the established connection is not
 protected with MD5 digests.
+.It Dv TCP_AUTHOPT
+This option enables the TCP Authentication Option (TCP-AO, RFC 5925) on the
+specified socket.
+When this option is enabled on a socket, all inbound and outgoing TCP segments
+must include the TCP Authentication Option.
+.Pp
+For this option to work, an administrator must configure key entries in the
+system security associations database (SADB) using the
+.Xr setkey 8
+utility.
+At this time, these entries can only be specified for given
+host-port tuples.
+.Pp
+If this option is not enabled, inbound segments with the TCP Authentication
+Option will be silently dropped.
+The system will not send any outgoing segments.
 .It Dv TCP_STATS
 Manage collection of connection level statistics using the
 .Xr stats 3
