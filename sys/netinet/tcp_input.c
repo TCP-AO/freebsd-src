@@ -1406,6 +1406,18 @@ tfo_socket_result:
 			goto dropunlock;
 	}
 #endif
+#if defined(IPSEC_SUPPORT) || defined(TCP_AUTH_OPT)
+	if (tp->t_flags2 & TF2_AO) {
+		tcp_dooptions(&to, optp, optlen, thflags);
+		if ((to.to_flags & TOF_AO) == 0) {
+			TCPSTAT_INC(tcps_auth_err_noauth);
+			goto dropunlock;
+		}
+		if (!TCPAO_ENABLED() ||
+		    TCPAO_INPUT(m, th, to.to_ao) != 0)
+			goto dropunlock;
+	}
+#endif
 	TCP_PROBE5(receive, NULL, tp, m, tp, th);
 
 	/*
@@ -1641,6 +1653,13 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 	if ((tp->t_flags & TF_SIGNATURE) != 0 &&
 	    (to.to_flags & TOF_SIGNATURE) == 0) {
 		TCPSTAT_INC(tcps_sig_err_sigopt);
+		/* XXX: should drop? */
+	}
+#endif
+#if defined(IPSEC_SUPPORT) || defined(TCP_AUTH_OPT)
+	if ((tp->t_flags2 & TF2_AO) != 0 &&
+	    (to.to_flags & TOF_AO) == 0) {
+		TCPSTAT_INC(tcps_auth_err_unexp);
 		/* XXX: should drop? */
 	}
 #endif
@@ -3523,6 +3542,13 @@ tcp_dooptions(struct tcpopt *to, u_char *cp, int cnt, int flags)
 			to->to_flags |= TOF_FASTOPEN;
 			to->to_tfo_len = optlen - 2;
 			to->to_tfo_cookie = to->to_tfo_len ? cp + 2 : NULL;
+			break;
+		case TCPOPT_AUTH:
+			if (optlen <= 4)
+				continue;
+			to->to_flags |= TOF_AO;
+			to->to_ao_len = optlen - 2;
+			to->to_ao = cp + 2;
 			break;
 		default:
 			continue;

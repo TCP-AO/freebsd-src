@@ -2200,6 +2200,17 @@ tcp_default_ctloutput(struct inpcb *inp, struct sockopt *sopt)
 			INP_WLOCK_RECHECK(inp);
 			goto unlock_and_done;
 #endif /* IPSEC */
+#if defined(IPSEC_SUPPORT) || defined(TCP_AUTH_OPT)
+		case TCP_AUTHOPT:
+			INP_WUNLOCK(inp);
+			if (!TCPAO_ENABLED())
+				return (ENOPROTOOPT);
+			error = TCPAO_PCBCTL(inp, sopt);
+			if (error)
+				return (error);
+			INP_WLOCK_RECHECK(inp);
+			goto unlock_and_done;
+#endif /* IPSEC_SUPPORT || TCP_AUTH_OPT */
 
 		case TCP_NODELAY:
 		case TCP_NOOPT:
@@ -2573,6 +2584,14 @@ unlock_and_done:
 			if (!TCPMD5_ENABLED())
 				return (ENOPROTOOPT);
 			error = TCPMD5_PCBCTL(inp, sopt);
+			break;
+#endif
+#if defined(IPSEC_SUPPORT) || defined(TCP_AUTH_OPT)
+		case TCP_AUTHOPT:
+			INP_WUNLOCK(inp);
+			if (!TCPAO_ENABLED())
+				return (ENOPROTOOPT);
+			error = TCPAO_PCBCTL(inp, sopt);
 			break;
 #endif
 
@@ -3070,6 +3089,10 @@ db_print_tflags2(u_int t_flags2)
 	}
 	if (t_flags2 & TF2_FBYTES_COMPLETE) {
 		db_printf("%sTF2_FBYTES_COMPLETE", comma ? ", " : "");
+		comma = 1;
+	}
+	if (t_flags2 & TF2_AO) {
+		db_printf("%sTF2_AO", comma ? ", " : "");
 		comma = 1;
 	}
 }

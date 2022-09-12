@@ -570,6 +570,7 @@ tcp_unlock_or_drop(struct tcpcb *tp, int tcp_output_retval)
 #define	TF2_ECN_SND_ECE		0x00000080 /* ECN ECE in queue */
 #define	TF2_ACE_PERMIT		0x00000100 /* Accurate ECN mode */
 #define TF2_FBYTES_COMPLETE	0x00000400 /* We have first bytes in and out */
+#define	TF2_AO			0x00000800 /* Require TCP-AO (RFC 5925) */
 /*
  * Structure to hold TCP options that are only used during segment
  * processing (in tcp_input), but not held in the tcpcb.
@@ -587,7 +588,8 @@ struct tcpopt {
 #define	TOF_SIGNATURE	0x0040		/* TCP-MD5 signature option (RFC2385) */
 #define	TOF_SACK	0x0080		/* Peer sent SACK option */
 #define	TOF_FASTOPEN	0x0100		/* TCP Fast Open (TFO) cookie */
-#define	TOF_MAXOPT	0x0200
+#define	TOF_AO		0x0200		/* TCP-AO (RFC5925) */
+#define	TOF_MAXOPT	0x0400
 	u_int32_t	to_tsval;	/* new timestamp */
 	u_int32_t	to_tsecr;	/* reflected timestamp */
 	u_char		*to_sacks;	/* pointer to the first SACK blocks */
@@ -597,7 +599,9 @@ struct tcpopt {
 	u_int8_t	to_wscale;	/* window scaling */
 	u_int8_t	to_nsacks;	/* number of SACK blocks */
 	u_int8_t	to_tfo_len;	/* TFO cookie length */
-	u_int32_t	to_spare;	/* UTO */
+	u_char		*to_ao;		/* pointer to the TCP-AO data */
+	u_int8_t	to_ao_len;	/* TCP-AO option length */
+	u_int16_t	to_spare;	/* UTO */
 };
 
 /*
@@ -826,7 +830,14 @@ struct	tcpstat {
 	uint64_t tcps_ace_ect0;		/* ACE SYN packet with ECT0 */
 	uint64_t tcps_ace_ce;		/* ACE SYN packet with CE */
 
-	uint64_t _pad[6];		/* 6 TBD placeholder for STABLE */
+	/* TCP_AUTH_OPT related stats */
+	uint64_t tcps_auth_rcvgoodauth;	/* Total segments with good authentication */
+	uint64_t tcps_auth_rcvbadauth;	/* Total segments with bad authentication */
+	uint64_t tcps_auth_err_addauth;	/* Failed to add authentication option */
+	uint64_t tcps_auth_err_unexp;	/* No authentication expected by socket */
+	uint64_t tcps_auth_err_noauth;	/* No authentication provided by segment */
+
+	uint64_t _pad[1];		/* 1 TBD placeholder for STABLE */
 };
 
 #define	tcps_rcvmemdrop	tcps_rcvreassfull	/* compat */

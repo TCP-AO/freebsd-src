@@ -102,6 +102,8 @@ struct tcphdr {
 #define    TCPOLEN_TSTAMP_APPA		(TCPOLEN_TIMESTAMP+2) /* appendix A */
 #define	TCPOPT_SIGNATURE	19		/* Keyed MD5: RFC 2385 */
 #define	   TCPOLEN_SIGNATURE		18
+#define	TCPOPT_AUTH		29		/* Authentication: RFC 5925 */
+#define	   TCPOLEN_AUTH_MIN		4
 #define	TCPOPT_FAST_OPEN	34
 #define	   TCPOLEN_FAST_OPEN_EMPTY	2
 
@@ -171,6 +173,7 @@ struct tcphdr {
 #define TCP_NOPUSH	4	/* don't push last block of write */
 #define TCP_NOOPT	8	/* don't use TCP options */
 #define TCP_MD5SIG	16	/* use MD5 digests (RFC2385) */
+#define	TCP_AUTHOPT	29	/* use TCP-AO (RFC5925) */
 #define	TCP_INFO	32	/* retrieve tcp_info structure */
 #define	TCP_STATS	33	/* retrieve stats blob structure */
 #define	TCP_LOG		34	/* configure event logging for connection */
